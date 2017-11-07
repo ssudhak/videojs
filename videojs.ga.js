@@ -1,12 +1,13 @@
 /*
-* videojs-ga - v0.4.1 - 2015-08-10
-* Copyright (c) 2015 Michael Bensoussan
-* Licensed MIT
+* Dev version for correction
 */
 (function() {
   var __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-
-  videojs.plugin('ga', function(options) {
+  
+  //Avoid by switching to videojs.registerPlugin() or become cross-compatible with
+  var registerPlugin = videojs.registerPlugin || videojs.plugin;
+  
+  registerPlugin('ga', function(options) {
     var adStateRegex, currentVideo, dataSetupOptions, defaultLabel, defaultsEventsToTrack, end, endTracked, error, eventCategory, eventLabel, eventNames, eventsToTrack, fullscreen, getEventName, href, iframe, isInAdState, loaded, parsedOptions, pause, percentsAlreadyTracked, percentsPlayedInterval, play, player, referrer, resize, seekEnd, seekStart, seeking, sendbeacon, sendbeaconOverride, start, startTracked, timeupdate, tracker, volumeChange,
       _this = this;
     if (options == null) {
