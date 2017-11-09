@@ -1,9 +1,8 @@
 /*
-* Dev version for correction
+* videojs-ga - v0.4.2 - 2017-05-25
+* Copyright (c) 2017 Michael Bensoussan
+* Licensed MIT
 */
-//Avoid by switching to videojs.registerPlugin() or become cross-compatible with
-//  var registerPlugin = videojs.registerPlugin || videojs.plugin;
-
 (function() {
   var __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
@@ -149,4 +148,3 @@
   });
 
 }).call(this);
-
