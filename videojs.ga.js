@@ -104,7 +104,8 @@
     };
     sendbeacon = function(action, nonInteraction, value) {
       if (window.ga) {
-        ga('send', 'event', {
+        var trackerName = ga.getAll()[0].get('name');
+        ga(trackerName + '.send', 'event', {
           'eventCategory': eventCategory,
           'eventAction': action,
           'eventLabel': eventLabel,
