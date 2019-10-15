@@ -1,151 +1,265 @@
-/*
-* videojs-ga - v0.4.2 - 2017-05-25
-* Copyright (c) 2017 Michael Bensoussan
-* Licensed MIT
-*/
-(function() {
-  var __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+##
+# ga
+# https://github.com/mickey/videojs-ga
+#
+# Copyright (c) 2013 Michael Bensoussan
+# Licensed under the MIT license.
+##
 
-  videojs.plugin('ga', function(options) {
-    var dataSetupOptions, defaultsEventsToTrack, end, error, eventCategory, eventLabel, eventsToTrack, fullscreen, loaded, parsedOptions, pause, percentsAlreadyTracked, percentsPlayedInterval, play, resize, seekEnd, seekStart, seeking, sendbeacon, timeupdate, volumeChange;
-    if (options == null) {
-      options = {};
-    }
-    dataSetupOptions = {};
-    if (this.options_["data-setup"]) {
-      parsedOptions = JSON.parse(this.options_["data-setup"]);
-      if (parsedOptions.ga) {
-        dataSetupOptions = parsedOptions.ga;
-      }
-    }
-    defaultsEventsToTrack = ['loadedmetadata', 'percentsPlayed', 'start', 'end', 'seek', 'play', 'pause', 'resize', 'volumeChange', 'error', 'fullscreen'];
-    eventsToTrack = options.eventsToTrack || dataSetupOptions.eventsToTrack || defaultsEventsToTrack;
-    percentsPlayedInterval = options.percentsPlayedInterval || dataSetupOptions.percentsPlayedInterval || 10;
-    eventCategory = options.eventCategory || dataSetupOptions.eventCategory || 'Video';
-    eventLabel = options.eventLabel || dataSetupOptions.eventLabel;
-    options.debug = options.debug || false;
-    percentsAlreadyTracked = [];
-    seekStart = seekEnd = 0;
-    seeking = false;
-    loaded = function() {
-      percentsAlreadyTracked = [];
-      if (!eventLabel) {
-        eventLabel = this.currentSrc().split("/").slice(-1)[0].replace(/\.(\w{3,4})(\?.*)?$/i, '');
-      }
-      if (__indexOf.call(eventsToTrack, "loadedmetadata") >= 0) {
-        sendbeacon('loadedmetadata', true);
-      }
-    };
-    timeupdate = function() {
-      var currentTime, duration, percent, percentPlayed, _i;
-      currentTime = Math.round(this.currentTime());
-      duration = Math.round(this.duration());
-      percentPlayed = Math.round(currentTime / duration * 100);
-      for (percent = _i = 0; _i <= 99; percent = _i += percentsPlayedInterval) {
-        if (percentPlayed >= percent && __indexOf.call(percentsAlreadyTracked, percent) < 0) {
-          if (__indexOf.call(eventsToTrack, "start") >= 0 && percent === 0 && percentPlayed > 0) {
-            sendbeacon('start', true);
-          } else if (__indexOf.call(eventsToTrack, "percentsPlayed") >= 0 && percentPlayed !== 0) {
-            sendbeacon('percent played', true, percent);
-          }
-          if (percentPlayed > 0) {
-            percentsAlreadyTracked.push(percent);
-          }
-        }
-      }
-      if (__indexOf.call(eventsToTrack, "seek") >= 0) {
-        seekStart = seekEnd;
-        seekEnd = currentTime;
-        if (Math.abs(seekStart - seekEnd) > 1) {
-          seeking = true;
-          sendbeacon('seek start', false, seekStart);
-          sendbeacon('seek end', false, seekEnd);
-        }
-      }
-    };
-    end = function() {
-      sendbeacon('end', true);
-    };
-    play = function() {
-      var currentTime;
-      currentTime = Math.round(this.currentTime());
-      sendbeacon('play', true, currentTime);
-      seeking = false;
-    };
-    pause = function() {
-      var currentTime, duration;
-      currentTime = Math.round(this.currentTime());
-      duration = Math.round(this.duration());
-      if (currentTime !== duration && !seeking) {
-        sendbeacon('pause', false, currentTime);
-      }
-    };
-    volumeChange = function() {
-      var volume;
-      volume = this.muted() === true ? 0 : this.volume();
-      sendbeacon('volume change', false, volume);
-    };
-    resize = function() {
-      sendbeacon('resize - ' + this.width() + "*" + this.height(), true);
-    };
-    error = function() {
-      var currentTime;
-      currentTime = Math.round(this.currentTime());
-      sendbeacon('error', true, currentTime);
-    };
-    fullscreen = function() {
-      var currentTime;
-      currentTime = Math.round(this.currentTime());
-      if ((typeof this.isFullscreen === "function" ? this.isFullscreen() : void 0) || (typeof this.isFullScreen === "function" ? this.isFullScreen() : void 0)) {
-        sendbeacon('enter fullscreen', false, currentTime);
-      } else {
-        sendbeacon('exit fullscreen', false, currentTime);
-      }
-    };
-    sendbeacon = function(action, nonInteraction, value) {
-      if (window.ga) {
-        var trackerName = ga.getAll()[0].get('name');
-        ga(trackerName + '.send', 'event', {
-          'eventCategory': eventCategory,
-          'eventAction': action,
-          'eventLabel': eventLabel,
-          'eventValue': value,
-          'nonInteraction': nonInteraction
-        });
-      } else if (window._gaq) {
-        _gaq.push(['_trackEvent', eventCategory, action, eventLabel, value, nonInteraction]);
-      } else if (options.debug) {
-        console.log("Google Analytics not detected");
-      }
-    };
-    this.ready(function() {
-      this.on("loadedmetadata", loaded);
-      this.on("timeupdate", timeupdate);
-      if (__indexOf.call(eventsToTrack, "end") >= 0) {
-        this.on("ended", end);
-      }
-      if (__indexOf.call(eventsToTrack, "play") >= 0) {
-        this.on("play", play);
-      }
-      if (__indexOf.call(eventsToTrack, "pause") >= 0) {
-        this.on("pause", pause);
-      }
-      if (__indexOf.call(eventsToTrack, "volumeChange") >= 0) {
-        this.on("volumechange", volumeChange);
-      }
-      if (__indexOf.call(eventsToTrack, "resize") >= 0) {
-        this.on("resize", resize);
-      }
-      if (__indexOf.call(eventsToTrack, "error") >= 0) {
-        this.on("error", error);
-      }
-      if (__indexOf.call(eventsToTrack, "fullscreen") >= 0) {
-        return this.on("fullscreenchange", fullscreen);
-      }
-    });
-    return {
-      'sendbeacon': sendbeacon
-    };
-  });
+registerPlugin = videojs.registerPlugin || videojs.plugin;
 
-}).call(this);
+registerPlugin 'ga', (options = {}) ->
+
+  referrer = document.createElement('a')
+  referrer.href = document.referrer
+  if (self != top && window.location.host == 'preview-players.brightcove.net' && referrer.hostname == 'studio.brightcove.com')
+    videojs.log('Google analytics plugin will not track events in Video Cloud Studio')
+    return
+
+  player = @
+
+  # this loads options from the data-setup attribute of the video tag
+  dataSetupOptions = {}
+  if @options_["data-setup"]
+    parsedOptions = JSON.parse(@options()["data-setup"])
+    dataSetupOptions = parsedOptions.ga if parsedOptions.ga
+
+  defaultsEventsToTrack = [
+    'player_load', 'video_load', 'percent_played', 'start',
+    'end', 'seek', 'play', 'pause', 'resize',
+    'volume_change', 'error', 'fullscreen'
+  ]
+  eventsToTrack = options.eventsToTrack || dataSetupOptions.eventsToTrack || defaultsEventsToTrack
+  percentsPlayedInterval = options.percentsPlayedInterval || dataSetupOptions.percentsPlayedInterval || 10
+
+  eventCategory = options.eventCategory || dataSetupOptions.eventCategory || 'Brightcove Player'
+  # if you didn't specify a name, it will be 'guessed' from the video src after metadatas are loaded
+  defaultLabel = options.eventLabel || dataSetupOptions.eventLabel
+
+  #override the send beacon method - in our case, we need to do data layer pushes
+  sendbeaconOverride = options.sendbeaconOverride || false
+
+  # if debug isn't specified
+  options.debug = options.debug || false
+
+  # if a named tracker should be used
+  options.trackerName = options.trackerName || null
+
+  trackerName = ''
+  if typeof options.trackerName == 'string'
+    trackerName = options.trackerName + '.'
+
+  # init a few variables
+  percentsAlreadyTracked = []
+  startTracked = false
+  endTracked = false
+  seekStart = seekEnd = 0
+  seeking = false
+  eventLabel = ''
+  currentVideo = ''
+
+  eventNames = {
+    "video_load": "Video Load",
+    "percent_played": "Percent played",
+    "start": "Media Begin",
+    "seek_start": "Seek start",
+    "seek_end": "Seek end",
+    "play": "Media Play",
+    "pause": "Media Pause",
+    "error": "Error",
+    "fullscreen_exit": "Fullscreen Exited",
+    "fullscreen_enter": "Fullscreen Entered",
+    "resize": "Resize",
+    "volume_change": "Volume Change",
+    "player_load": "Player Load",
+    "end": "Media Complete"
+  }
+
+  getEventName = ( name ) ->
+    if options.eventNames && options.eventNames[name]
+      return options.eventNames[name]
+    if dataSetupOptions.eventNames && dataSetupOptions.eventNames[name]
+      return dataSetupOptions.eventNames[name]
+    if eventNames[name]
+      return eventNames[name]
+    return name
+
+  # load ga script if in iframe and tracker option is set
+  if window.location.host == 'players.brightcove.net' || window.location.host == 'preview-players.brightcove.net' || trackerName != '' 
+    tracker = options.tracker || dataSetupOptions.tracker
+    if tracker
+      ((i, s, o, g, r, a, m) ->
+        i["GoogleAnalyticsObject"] = r
+        i[r] = i[r] or ->
+          (i[r].q = i[r].q or []).push arguments
+
+        i[r].l = 1 * new Date()
+
+        a = s.createElement(o)
+        m = s.getElementsByTagName(o)[0]
+
+        a.async = 1
+        a.src = g
+        m.parentNode.insertBefore a, m
+      ) window, document, "script", "//www.google-analytics.com/analytics.js", "ga"
+      ga('create', tracker, 'auto', options.trackerName)
+      ga(trackerName + 'require', 'displayfeatures')
+
+  adStateRegex = /(\s|^)vjs-ad-(playing|loading)(\s|$)/
+  isInAdState = ( player ) =>
+    return adStateRegex.test( player.el().className )
+
+  loaded = ->
+    if !isInAdState( player )
+      # Event label is Video Cloud ID | Name, or filename (Perform), or overridden
+      if defaultLabel
+        eventLabel = defaultLabel
+      else
+        if player.mediainfo && player.mediainfo.id
+          eventLabel = player.mediainfo.id + ' | ' + player.mediainfo.name
+        else
+          eventLabel = @currentSrc().split("/").slice(-1)[0].replace(/\.(\w{3,4})(\?.*)?$/i,'')
+      if player.mediainfo && player.mediainfo.id && player.mediainfo.id != currentVideo
+        currentVideo = player.mediainfo.id
+        percentsAlreadyTracked = []
+        startTracked = false
+        endTracked = false
+        seekStart = seekEnd = 0
+        seeking = false
+
+        if "video_load" in eventsToTrack
+          sendbeacon( getEventName('video_load'), true )
+
+      return
+
+  timeupdate = ->
+    if !isInAdState( player )
+      currentTime = Math.round(@currentTime())
+      duration = Math.round(@duration())
+      percentPlayed = Math.round(currentTime/duration*100)
+
+      for percent in [0..99] by percentsPlayedInterval
+        if percentPlayed >= percent && percent not in percentsAlreadyTracked
+
+          if "percent_played" in eventsToTrack && percentPlayed != 0
+            sendbeacon( getEventName('percent_played'), true, percent )
+
+          if percentPlayed > 0
+            percentsAlreadyTracked.push(percent)
+
+      if "seek" in eventsToTrack
+        seekStart = seekEnd
+        seekEnd = currentTime
+        # if the difference between the start and the end are greater than 1 it's a seek.
+        if Math.abs(seekStart - seekEnd) > 1
+          seeking = true
+          sendbeacon( getEventName('seek_start'), false, seekStart )
+          sendbeacon( getEventName('seek_end'), false, seekEnd )
+
+      return
+
+  end = ->
+    if !isInAdState( player ) && !endTracked
+      sendbeacon( getEventName('end'), true )
+      endTracked = true
+    return
+
+  play = ->
+    if !isInAdState( player )
+      currentTime = Math.round(@currentTime())
+      sendbeacon( getEventName('play'), true, currentTime )
+      seeking = false
+      return
+
+  start = ->
+    if !isInAdState( player )
+      if "start" in eventsToTrack && !startTracked
+        sendbeacon( getEventName('start'), true )
+        startTracked = true
+
+  pause = ->
+    if !isInAdState( player )
+      currentTime = Math.round(@currentTime())
+      duration = Math.round(@duration())
+      if currentTime != duration && !seeking
+        sendbeacon( getEventName('pause'), true, currentTime )
+      return
+
+  # value between 0 (muted) and 1
+  volumeChange = ->
+    volume = if @muted() == true then 0 else @volume()
+    sendbeacon( getEventName('volume_change'), false, volume )
+    return
+
+  resize = ->
+    sendbeacon( getEventName('resize') + ' - ' + @width() + "*" + @height(), true )
+    return
+
+  error = ->
+    currentTime = Math.round(@currentTime())
+    # XXX: Is there some informations about the error somewhere ?
+    sendbeacon( getEventName('error'), true, currentTime )
+    return
+
+  fullscreen = ->
+    currentTime = Math.round(@currentTime())
+    if @isFullscreen()
+      sendbeacon( getEventName('fullscreen_enter'), false, currentTime )
+    else
+      sendbeacon( getEventName('fullscreen_exit'), false, currentTime )
+    return
+
+  sendbeacon = ( action, nonInteraction, value ) ->
+    # videojs.log action, " ", nonInteraction, " ", value
+
+    if sendbeaconOverride
+      sendbeaconOverride(eventCategory, action, eventLabel, value, nonInteraction)
+    else if window.ga
+      ga trackerName + 'send', 'event',
+        'eventCategory'   : eventCategory
+        'eventAction'      : action
+        'eventLabel'      : eventLabel
+        'eventValue'      : value
+        'nonInteraction'  : nonInteraction
+    else if window._gaq
+      _gaq.push(['_trackEvent', eventCategory, action, eventLabel, value, nonInteraction])
+    else if options.debug
+      videojs.log("Google Analytics not detected")
+
+    return
+
+  @ready ->
+    @on("loadedmetadata", loaded) # use loadstart?
+    @on("timeupdate", timeupdate)
+    @on("ended", end) if "end" in eventsToTrack
+    @on("play", play) if "play" in eventsToTrack
+    @on("playing", start) if "start" in eventsToTrack
+    @on("pause", pause) if "pause" in eventsToTrack
+    @on("volumechange", volumeChange) if "volume_change" in eventsToTrack
+    @on("resize", resize) if "resize" in eventsToTrack
+    @on("error", error) if "error" in eventsToTrack
+    @on("fullscreenchange", fullscreen) if "fullscreen" in eventsToTrack
+
+    if "player_load" in eventsToTrack
+      unless self == top
+        href = document.referrer
+        iframe = 1
+      else
+        href = window.location.href
+        iframe = 0
+
+      if sendbeaconOverride
+        sendbeaconOverride(eventCategory, getEventName('player_load'), href, iframe, true)
+      else if window.ga
+        ga trackerName + 'send', 'event',
+          'eventCategory'   : eventCategory
+          'eventAction'      : getEventName('player_load')
+          'eventLabel'      : href
+          'eventValue'      : iframe
+          'nonInteraction'  : true
+      else if window._gaq
+        _gaq.push(['_trackEvent', eventCategory, getEventName('player_load'), href, iframe, false])
+      else
+        videojs.log("Google Analytics not detected")
+
+  return 'sendbeacon': sendbeacon
